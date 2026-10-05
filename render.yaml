@@ -3,7 +3,7 @@ services:
     name: porthole-webrtc
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python server.py
+    startCommand: python backend/server.py
     envVars:
       - key: PORT
         value: 10000

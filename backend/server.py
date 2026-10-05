@@ -30,7 +30,7 @@ logging.basicConfig(
 logger = logging.getLogger("SignalingServer")
 
 PORT = int(os.environ.get("PORT", 8000))
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 PUBLIC_DIR = BASE_DIR / "public"
 TOKEN_FILE = BASE_DIR / ".agent_token"
 

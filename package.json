@@ -1,8 +1,0 @@
-{
-  "name": "porthole-webrtc",
-  "version": "1.0.0",
-  "description": "Porthole WebRTC Peer-to-Peer Remote Desktop and Screen Sharing",
-  "scripts": {
-    "build": "echo 'Static frontend ready'"
-  }
-}

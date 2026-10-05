@@ -39,7 +39,7 @@ logging.basicConfig(
 logger = logging.getLogger("HostAgent")
 
 HOST_AGENT_PORT = 8765
-TOKEN_FILE = Path(__file__).parent / ".agent_token"
+TOKEN_FILE = Path(__file__).resolve().parent.parent / ".agent_token"
 
 # Generate or refresh cryptographic auth token
 AGENT_AUTH_TOKEN = secrets.token_hex(16)

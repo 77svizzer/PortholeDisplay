@@ -618,7 +618,12 @@ def create_app():
     return app
 
 
+# Top-level exports for WSGI/ASGI/hosting runners and test suites
+app = create_app()
+application = app
+handler = app
+
+
 if __name__ == "__main__":
-    app = create_app()
     logger.info(f"Starting hardened Porthole Signaling & Web Application on port {PORT}...")
     web.run_app(app, host="0.0.0.0", port=PORT)

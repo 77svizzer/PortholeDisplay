@@ -9,8 +9,26 @@
     'use strict';
 
     // --- Configuration ---
-    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const SIGNALING_URL = `${wsProto}//${location.host}/ws`;
+    function resolveSignalingUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let custom = urlParams.get('server') || localStorage.getItem('porthole_signaling_url');
+        if (custom) {
+            custom = custom.trim();
+            if (custom.startsWith('http://')) custom = 'ws://' + custom.slice(7);
+            else if (custom.startsWith('https://')) custom = 'wss://' + custom.slice(8);
+            else if (!custom.startsWith('ws://') && !custom.startsWith('wss://')) {
+                custom = (location.protocol === 'https:' ? 'wss://' : 'ws://') + custom;
+            }
+            if (!custom.endsWith('/ws')) {
+                custom = custom.replace(/\/+$/, '') + '/ws';
+            }
+            return custom;
+        }
+        const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${wsProto}//${location.host}/ws`;
+    }
+
+    let SIGNALING_URL = resolveSignalingUrl();
     const AGENT_WS_URL = 'ws://127.0.0.1:8765';
 
     const RTC_CONFIG = {
@@ -287,6 +305,8 @@
             return;
         }
 
+        SIGNALING_URL = resolveSignalingUrl();
+
         try {
             state.signalingWs = new WebSocket(SIGNALING_URL);
         } catch (e) {
@@ -321,10 +341,42 @@
         if (online) {
             el.serverStatusDot.className = 'status-dot online';
             el.serverStatusText.textContent = 'Онлайн';
+            if (el.serverStatusDot.parentElement) {
+                el.serverStatusDot.parentElement.title = 'Сервер подключен: ' + SIGNALING_URL;
+            }
         } else {
             el.serverStatusDot.className = 'status-dot';
             el.serverStatusText.textContent = 'Подключение...';
+            if (el.serverStatusDot.parentElement) {
+                el.serverStatusDot.parentElement.title = 'Попытка подключения к ' + SIGNALING_URL + ' (нажмите для смены адреса)';
+            }
         }
+    }
+
+    // Позволяет вручную указать адрес сервера сигнализации (например, при размещении на Vercel)
+    if (el.serverStatusDot && el.serverStatusDot.parentElement) {
+        el.serverStatusDot.parentElement.style.cursor = 'pointer';
+        el.serverStatusDot.parentElement.addEventListener('click', () => {
+            const current = localStorage.getItem('porthole_signaling_url') || location.host;
+            const input = prompt(
+                'Адрес сервера сигнализации (например: porthole.onrender.com или wss://.../ws):\n(Оставьте пустым для сброса на текущий адрес)',
+                current
+            );
+            if (input !== null) {
+                const trimmed = input.trim();
+                if (trimmed) {
+                    localStorage.setItem('porthole_signaling_url', trimmed);
+                } else {
+                    localStorage.removeItem('porthole_signaling_url');
+                }
+                SIGNALING_URL = resolveSignalingUrl();
+                if (state.signalingWs) {
+                    state.signalingWs.close();
+                }
+                initSignaling();
+                showToast('Адрес сервера: ' + SIGNALING_URL);
+            }
+        });
     }
 
     function sendSignaling(msg) {

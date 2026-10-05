@@ -1,5 +1,5 @@
-server.py
-host_agent.py
+*.py
+requirements.txt
 Dockerfile
 render.yaml
 .agent_token

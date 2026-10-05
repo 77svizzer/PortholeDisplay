@@ -282,6 +282,23 @@
         }
     });
 
+    function buildShareUrl(key) {
+        try {
+            const url = new URL(location.href);
+            url.search = '';
+            url.hash = '';
+            url.searchParams.set('join', key);
+            const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const defaultWs = `${wsProto}//${location.host}/ws`;
+            if (SIGNALING_URL && SIGNALING_URL !== defaultWs) {
+                url.searchParams.set('server', SIGNALING_URL);
+            }
+            return url.toString();
+        } catch (e) {
+            return `${location.origin}${location.pathname}?join=${encodeURIComponent(key)}`;
+        }
+    }
+
     el.btnCopyKey.addEventListener('click', () => {
         if (!state.sessionKey) return;
         navigator.clipboard.writeText(state.sessionKey).then(() => {
@@ -291,8 +308,7 @@
 
     el.btnCopyLink.addEventListener('click', () => {
         if (!state.sessionKey) return;
-        const directUrl = `${location.origin}${location.pathname}?join=${encodeURIComponent(state.sessionKey)}`;
-        navigator.clipboard.writeText(directUrl).then(() => {
+        navigator.clipboard.writeText(buildShareUrl(state.sessionKey)).then(() => {
             showToast('Прямая ссылка для зрителей скопирована');
         });
     });
@@ -721,8 +737,7 @@
     if (el.btnHostShareLink) {
         el.btnHostShareLink.addEventListener('click', () => {
             if (!state.sessionKey) return;
-            const directUrl = `${location.origin}${location.pathname}?join=${encodeURIComponent(state.sessionKey)}`;
-            navigator.clipboard.writeText(directUrl).then(() => {
+            navigator.clipboard.writeText(buildShareUrl(state.sessionKey)).then(() => {
                 showToast('Ссылка на трансляцию скопирована');
             });
         });

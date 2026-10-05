@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porthole - Удаленный доступ и трансляция экрана</title>
+    <!-- Google Fonts: Manrope (Clean Modern UI) & JetBrains Mono (Telemetry) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app-root">
+        <!-- ВЕРХНЯЯ СИСТЕМНАЯ ПАНЕЛЬ СТУДИИ -->
+        <header id="top-bar">
+            <!-- Логотип и брендинг -->
+            <div class="top-bar-left">
+                <div class="brand-group">
+                    <div class="brand-icon-box">
+                        <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="14" x="2" y="3" rx="2"/>
+                            <line x1="8" x2="16" y1="21" y2="21"/>
+                            <line x1="12" x2="12" y1="17" y2="21"/>
+                        </svg>
+                    </div>
+                    <span class="app-title">PortHole</span>
+                </div>
+            </div>
+
+            <!-- Переключатель режима: Поделиться / Подключиться -->
+            <div class="top-bar-center">
+                <div class="tabs" role="tablist">
+                    <button type="button" id="tab-btn-share" class="tab active" role="tab">
+                        <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span>Поделиться экраном</span>
+                    </button>
+                    <button type="button" id="tab-btn-connect" class="tab" role="tab">
+                        <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                        <span>Подключиться</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Идентификация пользователя, тема и статус соединения -->
+            <div class="top-bar-right">
+                <!-- Переключатель темы (Светлая / Темная) -->
+                <button type="button" id="btn-theme-toggle" class="theme-toggle-btn" title="Сменить тему оформления">
+                    <svg class="theme-icon-sun hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+                    </svg>
+                    <svg class="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                    </svg>
+                </button>
+
+                <div class="identity-inline">
+                    <label for="user-nickname" class="identity-label">Вы:</label>
+                    <input type="text" id="user-nickname" class="identity-input" placeholder="Ваше имя..." maxlength="24" autocomplete="off" spellcheck="false">
+                </div>
+
+                <div class="server-status">
+                    <span id="server-status-dot" class="status-dot online"></span>
+                    <span id="server-status-text">Онлайн</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ГЛАВНОЕ РАБОЧЕЕ ПРОСТРАНСТВО (ЛОББИ СТУДИИ) -->
+        <main id="lobby-view" class="view-active">
+            <!-- 1. ВКЛАДКА: ПОДЕЛИТЬСЯ ЭКРАНОМ -->
+            <div id="tab-content-share" class="studio-workspace">
+                <!-- СОСТОЯНИЕ 1: ДО ЗАПУСКА ТРАНСЛЯЦИИ -->
+                <div id="share-idle-state" class="studio-sublayout">
+                    <!-- ГЛАВНЫЙ ЭКРАННЫЙ СТЕНД (STAGE) -->
+                    <section class="stage-pane">
+                        <div class="monitor-frame monitor-glow-card">
+                            <div class="monitor-content monitor-standby">
+                                <div class="standby-center">
+                                    <div class="standby-symbol">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect width="20" height="14" x="2" y="3" rx="2"/>
+                                            <line x1="8" x2="16" y1="21" y2="21"/>
+                                            <line x1="12" x2="12" y1="17" y2="21"/>
+                                        </svg>
+                                    </div>
+                                    <h1 class="stage-title">Трансляция экрана</h1>
+                                    <p class="stage-subtitle">Экран вашего компьютера будет транслироваться зрителям по защищенному P2P-каналу WebRTC с возможностью удаленного управления мышью и клавиатурой.</p>
+
+                                    <div class="standby-actions">
+                                        <label class="checkbox-row" for="opt-host-mic">
+                                            <input type="checkbox" id="opt-host-mic" class="checkbox">
+                                            <span class="checkbox-label">Передавать звук с микрофона</span>
+                                        </label>
+
+                                        <button type="button" id="btn-start-host" class="btn btn-primary btn-xl">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                            <span>Начать показ экрана</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- БОКОВАЯ ИНФОРМАЦИОННАЯ ПАНЕЛЬ (SIDEBAR) -->
+                    <aside class="sidebar-pane">
+                        <div class="sidebar-header">
+                            <h2 class="sidebar-heading">Параметры сессии</h2>
+                        </div>
+
+                        <div class="sidebar-body">
+                            <div class="info-group">
+                                <span class="info-label">Подключение зрителей</span>
+                                <p class="info-text">После старта трансляции вы получите персональный 9-значный код и прямую ссылку для быстрого входа зрителей.</p>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="info-label">Управление доступом</span>
+                                <p class="info-text">По умолчанию зрители могут только наблюдать. Вы можете в любой момент выдать или отозвать права управления мышью и клавиатурой для каждого зрителя.</p>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="info-label">Прямой P2P обмен</span>
+                                <p class="info-text">Трансляция, системные нажатия, чат и передача файлов отправляются напрямую между браузерами без промежуточных серверов.</p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+
+                <!-- СОСТОЯНИЕ 2: ТРАНСЛЯЦИЯ В ЭФИРЕ -->
+                <div id="share-active-state" class="studio-sublayout hidden">
+                    <!-- ГЛАВНЫЙ ЭКРАН С ЖИВЫМ ПРЕВЬЮ -->
+                    <section class="stage-pane">
+                        <div class="monitor-frame monitor-live">
+                            <div class="monitor-top-bar">
+                                <div class="live-pill">
+                                    <span class="live-pulse-dot"></span>
+                                    <span>В ЭФИРЕ</span>
+                                </div>
+                                <div class="viewer-count-pill">
+                                    <span>Зрителей:</span>
+                                    <strong id="host-viewer-count">0</strong>
+                                </div>
+                            </div>
+
+                            <div class="video-container">
+                                <video id="host-preview-video" autoplay muted playsinline></video>
+
+                                <!-- Оверлей паузы трансляции -->
+                                <div id="host-pause-overlay" class="stream-pause-overlay hidden">
+                                    <div class="pause-card">
+                                        <div class="pause-symbol">
+                                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <line x1="10" y1="15" x2="10" y2="9"/>
+                                                <line x1="14" y1="15" x2="14" y2="9"/>
+                                            </svg>
+                                        </div>
+                                        <span class="pause-title">Трансляция на паузе</span>
+                                        <p class="pause-hint">Зрители временно не видят рабочий стол</p>
+                                    </div>
+                                </div>
+
+                                <!-- ПЛАВАЮЩИЙ ДИСКОРД-ДОК ДЛЯ ВЕДУЩЕГО -->
+                                <div class="discord-dock host-dock" id="host-dock">
+                                    <!-- Вкл/Выкл микрофон -->
+                                    <button type="button" id="btn-toggle-mic" class="dock-btn" title="Микрофон">
+                                        <svg class="dock-icon mic-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                            <line x1="12" x2="12" y1="19" y2="22"/>
+                                        </svg>
+                                        <svg class="dock-icon mic-off-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="2" y1="2" x2="22" y2="22"/>
+                                            <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/>
+                                            <path d="M5 10v2a7 7 0 0 0 12 5"/>
+                                            <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/>
+                                            <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/>
+                                            <line x1="12" x2="12" y1="19" y2="22"/>
+                                        </svg>
+                                        <span class="dock-tooltip" id="mic-status-text">Микрофон: выкл</span>
+                                    </button>
+
+                                    <!-- Приостановить показ -->
+                                    <button type="button" id="btn-pause-host" class="dock-btn" title="Приостановить показ">
+                                        <svg class="dock-icon pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="6" y="4" width="4" height="16" rx="1"/>
+                                            <rect x="14" y="4" width="4" height="16" rx="1"/>
+                                        </svg>
+                                        <svg class="dock-icon resume-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="5 3 19 12 5 21 5 3"/>
+                                        </svg>
+                                        <span class="dock-tooltip" id="pause-status-text">Приостановить</span>
+                                    </button>
+
+                                    <!-- Отправить файл -->
+                                    <button type="button" id="btn-host-open-file" class="dock-btn" title="Отправить файл">
+                                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                                        </svg>
+                                        <span class="dock-tooltip">Файл</span>
+                                    </button>
+                                    <input type="file" id="host-file-input" class="hidden">
+
+                                    <!-- Скопировать ссылку -->
+                                    <button type="button" id="btn-host-share-link" class="dock-btn" title="Скопировать ссылку для зрителей">
+                                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                        </svg>
+                                        <span class="dock-tooltip">Ссылка</span>
+                                    </button>
+
+                                    <div class="dock-divider"></div>
+
+                                    <!-- Завершить показ (Красная кнопка Discord) -->
+                                    <button type="button" id="btn-stop-host" class="dock-btn dock-btn-danger" title="Остановить показ">
+                                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+                                            <line x1="2" y1="2" x2="22" y2="22"/>
+                                        </svg>
+                                        <span class="dock-tooltip">Завершить</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- БОКОВАЯ СТУДИЙНАЯ ПАНЕЛЬ В ЭФИРЕ -->
+                    <aside class="sidebar-pane">
+                        <!-- Блок 1: Код подключения -->
+                        <div class="sidebar-section session-code-block">
+                            <span class="section-label">Код для зрителей</span>
+                            <div class="session-code-display" id="local-session-key">--- --- ---</div>
+                            <div class="code-buttons-row">
+                                <button type="button" id="btn-copy-key" class="btn btn-secondary btn-sm">
+                                    Скопировать код
+                                </button>
+                                <button type="button" id="btn-copy-link" class="btn btn-secondary btn-sm">
+                                    Скопировать ссылку
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Блок 2: Участники и права -->
+                        <div class="sidebar-section participants-block">
+                            <div class="section-header-row">
+                                <span class="section-label">Участники</span>
+                                <span class="badge-count" id="participants-count-tag">0 чел.</span>
+                            </div>
+                            <div id="participants-list" class="participants-list-scroll">
+                                <div class="empty-list-note">Зрители пока не подключились</div>
+                            </div>
+                        </div>
+
+                        <!-- Блок 3: Чат и файлы -->
+                        <div class="sidebar-section chat-block">
+                            <div class="section-header-row">
+                                <span class="section-label">Чат и файлы</span>
+                            </div>
+                            <div id="host-chat-messages" class="chat-messages-stream">
+                                <div class="chat-system-msg">Сессия открыта. Чат и файлы передаются напрямую.</div>
+                            </div>
+                            <form id="host-chat-form" onsubmit="return false;" class="chat-input-bar">
+                                <input type="text" id="host-chat-input" class="input chat-input-field" placeholder="Сообщение..." autocomplete="off">
+                                <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+                            </form>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- 2. ВКЛАДКА: ПОДКЛЮЧИТЬСЯ К ЭКРАНУ -->
+            <div id="tab-content-connect" class="studio-workspace hidden">
+                <div class="studio-sublayout">
+                    <!-- ГЛАВНЫЙ ЭКРАННЫЙ СТЕНД ПОДКЛЮЧЕНИЯ -->
+                    <section class="stage-pane">
+                        <div class="monitor-frame monitor-glow-card">
+                            <div class="monitor-content monitor-connect">
+                                <div class="standby-center">
+                                    <div class="standby-symbol">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                        </svg>
+                                    </div>
+                                    <h1 class="stage-title">Подключиться к экрану</h1>
+                                    <p class="stage-subtitle">Введите 9-значный код сессии, предоставленный ведущим, чтобы присоединиться к просмотру и управлению.</p>
+
+                                    <form id="connect-form" onsubmit="return false;" class="connect-box">
+                                        <div class="input-wrap">
+                                            <input type="text" id="remote-session-key" class="input input-code-huge" placeholder="000-000-000" maxlength="11" autocomplete="off" spellcheck="false">
+                                        </div>
+
+                                        <button type="button" id="btn-connect-remote" class="btn btn-primary btn-xl">
+                                            Подключиться к трансляции
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- БОКОВАЯ ПАНЕЛЬ ПОДКЛЮЧЕНИЯ -->
+                    <aside class="sidebar-pane">
+                        <div class="sidebar-header">
+                            <h2 class="sidebar-heading">Как это работает</h2>
+                        </div>
+
+                        <div class="sidebar-body">
+                            <div class="info-group">
+                                <span class="info-label">Прямой доступ</span>
+                                <p class="info-text">Вам не нужно регистрироваться или устанавливать сторонние программы. Подключение происходит через WebRTC прямо в браузере.</p>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="info-label">Режим просмотра и управления</span>
+                                <p class="info-text">Сразу после подключения вы сможете смотреть трансляцию. Запросите управление мышью и клавиатурой через нижнее меню, когда вам понадобится доступ к ПК.</p>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="info-label">Быстрый вход по ссылке</span>
+                                <p class="info-text">Если вам прислали прямую ссылку с параметром ?join=XXX-XXX-XXX, код подставится автоматически.</p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </main>
+
+        <!-- ОКНО ПРОСМОТРА ТРАНСЛЯЦИИ (РЕЖИМ ЗРИТЕЛЯ) -->
+        <main id="session-view" class="view-hidden">
+            <!-- Верхняя панель HUD телеметрии -->
+            <div id="session-header">
+                <div class="session-brand">
+                    <span class="app-title-sm">PortHole</span>
+                    <div class="session-info">
+                        <span class="session-label">Сессия:</span>
+                        <strong id="hud-target-key">---</strong>
+                    </div>
+                </div>
+
+                <div class="session-stats">
+                    <div id="hud-control-status" class="perm-badge view-only">
+                        <span class="perm-dot"></span>
+                        <span id="perm-status-text">Только просмотр</span>
+                    </div>
+
+                    <div class="stat-item"><span>Зрителей:</span> <strong id="hud-viewers-count">1</strong></div>
+                    <div class="stat-item"><span>Пинг:</span> <strong id="hud-rtt">0 ms</strong></div>
+                    <div class="stat-item"><span>FPS:</span> <strong id="hud-fps">0</strong></div>
+                    <div class="stat-item stat-extra"><span>Разрешение:</span> <strong id="hud-res">0x0</strong></div>
+                </div>
+            </div>
+
+            <!-- Выдвижная панель чата и файлов зрителя -->
+            <aside id="session-chat-panel" class="chat-drawer hidden">
+                <div class="drawer-header">
+                    <span class="drawer-title">Чат и файлы сессии</span>
+                    <button type="button" id="btn-close-chat" class="btn-icon" title="Закрыть чат">&times;</button>
+                </div>
+                <div id="viewer-chat-messages" class="chat-messages-scroll">
+                    <div class="chat-system-msg">Вы подключились к трансляции. Чат и файлы передаются напрямую.</div>
+                </div>
+                <form id="viewer-chat-form" onsubmit="return false;" class="chat-input-row">
+                    <input type="text" id="viewer-chat-input" class="input chat-input" placeholder="Сообщение..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+                </form>
+            </aside>
+
+            <!-- Полноэкранный холст трансляции -->
+            <div id="viewport-stage" tabindex="0">
+                <video id="remote-video" autoplay playsinline muted></video>
+                <audio id="remote-audio" autoplay playsinline></audio>
+
+                <!-- Визуальный круг клика удаленного пользователя -->
+                <div id="remote-click-ripple" class="click-ripple hidden"></div>
+
+                <!-- Оверлей паузы трансляции для зрителя -->
+                <div id="viewer-pause-overlay" class="stream-pause-overlay hidden">
+                    <div class="pause-card">
+                        <div class="pause-symbol">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="10" y1="15" x2="10" y2="9"/>
+                                <line x1="14" y1="15" x2="14" y2="9"/>
+                            </svg>
+                        </div>
+                        <span class="pause-title">Ведущий приостановил трансляцию</span>
+                        <p class="pause-hint">Экран временно скрыт ведущим. Ожидайте возобновления...</p>
+                    </div>
+                </div>
+
+                <!-- ПЛАВАЮЩИЙ ДИСКОРД-ДОК ДЛЯ ЗРИТЕЛЯ / ОПЕРАТОРА -->
+                <div class="discord-dock viewer-dock" id="viewer-dock">
+                    <!-- Запросить / Прекратить управление ПК -->
+                    <button type="button" id="btn-request-control" class="dock-btn" title="Запросить управление ПК">
+                        <svg class="dock-icon control-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 3 7 18 3-7 7-3L3 3z"/>
+                            <path d="m13 13 6 6"/>
+                        </svg>
+                        <span class="dock-tooltip" id="control-tooltip">Запросить управление</span>
+                    </button>
+
+                    <!-- Горячая клавиша Ctrl+Alt+Del -->
+                    <button type="button" id="btn-send-cad" class="dock-btn" title="Отправить Ctrl+Alt+Del">
+                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="m9 9 6 6"/>
+                            <path d="m15 9-6 6"/>
+                        </svg>
+                        <span class="dock-tooltip">Ctrl+Alt+Del</span>
+                    </button>
+
+                    <!-- Открыть чат и файлы -->
+                    <button type="button" id="btn-toggle-chat" class="dock-btn" title="Чат">
+                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span class="dock-badge hidden" id="chat-unread-badge">0</span>
+                        <span class="dock-tooltip">Чат</span>
+                    </button>
+
+                    <!-- Отправить файл -->
+                    <button type="button" id="btn-viewer-open-file" class="dock-btn" title="Отправить файл">
+                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        <span class="dock-tooltip">Файл</span>
+                    </button>
+                    <input type="file" id="viewer-file-input" class="hidden">
+
+                    <!-- Во весь экран -->
+                    <button type="button" id="btn-fullscreen" class="dock-btn" title="Во весь экран">
+                        <svg class="dock-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                        <span class="dock-tooltip">Во весь экран</span>
+                    </button>
+
+                    <div class="dock-divider"></div>
+
+                    <!-- Отключиться (Красная кнопка Discord) -->
+                    <button type="button" id="btn-disconnect" class="dock-btn dock-btn-danger" title="Выйти из трансляции">
+                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+                            <line x1="2" y1="2" x2="22" y2="22"/>
+                        </svg>
+                        <span class="dock-tooltip">Отключиться</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ (ТОСТЫ) -->
+        <div id="toast-container" class="toast-hidden">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
